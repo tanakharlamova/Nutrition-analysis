@@ -1,62 +1,93 @@
 
 import { useEffect, useState } from 'react';
 import './App.css';
+import NutritionDetails from './NutritionDetails';
+import { LoaderPage } from './Loaderpage';
 
-// https://api.edamam.com/api/nutrition-details?app_id=18ca8d11&app_key=f540341fcf1bdfcda6737acb57ec3652
-
-// первая ссылка работает, она сейчас стоит в функции, отображается в консоли
-// вторая https://api.edamam.com/api/nutrition-details?app_id=3898b975&app_key=e463583728a679dcdd5ab92a3d112219 
-// не отображается
 
 function App() {
 
 
-  const MY_ID = "3898b975";
-  const MY_KEY = "e463583728a679dcdd5ab92a3d112219";
+  const [mySearch, setMySearch] = useState();
+  const [myNutrients, setMyNutrients] = useState();
+  const [wordSubmitted, setWordSubmitted] = useState('');
+  const [loader, setLoader] = useState(false);
 
-  useEffect(() => {
-    const getNutrients = async () => {
-      const response = await fetch (`https://api.edamam.com/api/nutrition-data?app_id=${MY_ID}&app_key=${MY_KEY}&nutrition-type=cooking&ingr=avocado`);
+  const MY_ID = '18ca8d11';
+  const MY_KEY = 'f540341fcf1bdfcda6737acb57ec3652';
+  const BASE_URL = 'https://api.edamam.com/api/nutrition-details';
+
+  const getNutrition = async (ingr) => {
+      setLoader(true);
+
+    const response = await fetch(`${BASE_URL}?app_id=${MY_ID}&app_key=${MY_KEY}`, {
+      method: "POST",
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ingr: ingr})
+    });
+
+    if(response.ok) {
+      setLoader(false);
       const data = await response.json();
-      console.log(data);
+      setMyNutrients(data);
+    
+    } else {
+      setLoader(false);
+      alert("ingredients entered incorrectly");
     }
-    getNutrients();
-  }, [])
- 
+    
+  }
 
- /*  const [mySearch, setMySearch] = useState("");
-  const [myNutrients, setMyNutrients] = useState([]);
-  const [wordSubmitted, setWordSubmitted] = useState("tomato");
-
-  useEffect(()=> {
-    const getNutrients = async () => {
-      const response = await fetch (`https://api.edamam.com/api/nutrition-details?app_id=${MY_ID}&app_key=${MY_KEY}`);
-      const data = await response.json();
-      console.log(data.hits);
-      setMyNutrients(data.hits);
-    }
-    getNutrients()
-  }, [wordSubmitted]); */
-
-  /* const myNutrientSearch = (e) => {
+  const myNutrientSearch = e => {
     setMySearch(e.target.value)
   }
 
-  const finalSearch = (e) => {
+  const finalSearch = e => {
     e.preventDefault();
     setWordSubmitted(mySearch);
-  } */
+  }
+
+  useEffect(()=> {
+    if (wordSubmitted !== '') {
+      let ingr = wordSubmitted.split(/[,,;,\n,\r]/);
+      getNutrition(ingr);
+    }
+    
+  }, [wordSubmitted]);
 
   return (
     <div className="App">
       
+      {loader && <LoaderPage/>}
 
-    {/*   <div className='container'>
+     <div className='container'>
         <form onSubmit={finalSearch}>
-          <input placeholder='Search...' onChange={myNutrientSearch} value={mySearch}/>
+          <input placeholder='Search...' onChange={myNutrientSearch}/>
+          <button type='submit'>Search</button>
         </form>
       </div>
- */}
+
+      <div>
+        {
+          myNutrients && <p>{myNutrients.calories} kcal</p>
+        }
+
+        {
+          myNutrients && Object.value(myNutrients.totalNutrients)
+          .map(({ label, quantity, unit }) => 
+          <NutritionDetails
+          label={label}
+          quantity={quantity}
+          unit={unit}
+          />
+          )
+        }
+
+      </div>
+
     </div>
   );
 }
